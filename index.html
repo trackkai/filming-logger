@@ -598,8 +598,11 @@
 
     window.onload = function() {
       loadSavedDatabase();
-      loadDraftCache();
+      // Populate the dropdown BEFORE restoring the draft — rebuilding it after
+      // would throw away the restored maneuver and the next autosave would then
+      // overwrite the draft with the wrong one.
       updateManeuverDropdown();
+      loadDraftCache();
       renderGapAnalysis();
       initSpeechRecognition();
       initConnectionBadge();
@@ -693,6 +696,13 @@
     }
 
     function saveRunRecord() {
+      // A blank or mangled run number would save as "Run  " and poison the
+      // auto-increment (parseInt('')+1 = NaN) for every run after it.
+      const runNumRaw = parseInt(document.getElementById('run-num').value, 10);
+      if (isNaN(runNumRaw) || runNumRaw < 1) {
+        alert('Run # is empty — set it, then save again.\n\nNothing on this screen was cleared.');
+        return;
+      }
       const now = new Date();
       const record = {
         id: 'RUN-' + Date.now(),
@@ -805,6 +815,12 @@
       }
     }
 
+    // Notes are free text dropped into innerHTML — "<b" in a note would swallow
+    // the rest of the line (and voice transcription is out of our control).
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
+
     function renderHistory() {
       const container = document.getElementById('run-history-container');
       container.innerHTML = '';
@@ -834,7 +850,7 @@
           </div>
           <div class="run-meta">${run.terrain} | ${run.radius} TURN | ${run.steering} | ${run.snow}</div>
           <div class="run-meta">Cam: ${run.camera} ${run.clack ? '<span class="sync-badge">⚡ SYNC MARKED</span>' : ''}</div>
-          ${run.notes ? `<div style="font-size:0.8rem; color:var(--text-main); margin-top:4px;">"${run.notes}"</div>` : ''}
+          ${run.notes ? `<div style="font-size:0.8rem; color:var(--text-main); margin-top:4px;">"${esc(run.notes)}"</div>` : ''}
         `;
         container.appendChild(item);
       });

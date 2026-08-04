@@ -1,7 +1,7 @@
 // Offline is the whole point: this runs on a mountain in Argentina with no bars.
 // Cache-first on everything, so once installed the app never waits on a network
 // that is not there. Bump CACHE to ship an update.
-const CACHE = 'track-log-v4';
+const CACHE = 'track-log-v5';
 const SHELL = [
   './',
   './index.html',

@@ -587,12 +587,10 @@
         { id: 'FR-02', name: 'All-Mountain Terrain Adaptation Flow' }
       ],
       QUICK_RIDE: [
-        { id: 'SEC-BMP', name: 'Bumps: Trough Steering & Active Flexion' },
-        { id: 'SEC-STP', name: 'Steeps: Down Un-weighted Jump Release' },
-        { id: 'SEC-SWT', name: 'Switch: Linked Switch Carved Turns' },
-        { id: 'SEC-FLT', name: 'Flatland: Nose/Tail Presses & Butter 180s' },
-        { id: 'SEC-FST', name: 'Freestyle: Straight Air Indy/Mute Grab' },
-        { id: 'SEC-BIO', name: 'Specialty: Ankle Dorsiflexion Hold Demo' }
+        { id: 'QR-C1', name: 'Control: Sideslip Heelside' },
+        { id: 'QR-C2', name: 'Control: Sideslip Toeside' },
+        { id: 'QR-T1', name: 'Turning: First Turn Heel→Toe' },
+        { id: 'QR-T2', name: 'Turning: First Turn Toe→Heel' }
       ]
     };
 
@@ -679,7 +677,14 @@
             document.getElementById('run-cat').value = draft.cat;
             updateManeuverDropdown();
           }
-          if (draft.maneuver) document.getElementById('maneuver-select').value = draft.maneuver;
+          if (draft.maneuver) {
+            const ms = document.getElementById('maneuver-select');
+            ms.value = draft.maneuver;
+            // A draft can hold an id from a list that has since changed (the old
+            // SEC-* Quick Ride ids) — a missing option would leave the select
+            // blank and the next autosave would store '' as the maneuver.
+            if (ms.selectedIndex === -1) ms.selectedIndex = 0;
+          }
           if (draft.terrain) selectBtn('terrain', draft.terrain, document.querySelector(`#terrain-group .opt-btn[onclick*="${draft.terrain}"]`));
           if (draft.radius) selectBtn('radius', draft.radius, document.querySelector(`#radius-group .opt-btn[onclick*="${draft.radius}"]`));
           if (draft.steering) selectBtn('steering', draft.steering, document.querySelector(`#steering-group .opt-btn[onclick*="${draft.steering}"]`));

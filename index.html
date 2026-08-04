@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Track.AI Snowboard Filming Logger</title>
+
+  <!-- Installed-app plumbing. apple-touch-icon and apple-mobile-web-app-* are what
+       make iOS treat this as a real app instead of a Safari bookmark; the manifest
+       does the same job on Android. -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Track Log">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+  <style>
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --border-color: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 12px;
+      /* Standalone mode has no browser chrome, so the notch and the home bar are
+         ours to avoid. */
+      padding-top: max(12px, env(safe-area-inset-top));
+      padding-bottom: max(80px, calc(env(safe-area-inset-bottom) + 60px));
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    .badge {
+      background-color: #0284c7;
+      color: white;
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .badge.is-offline {
+      background-color: #334155;
+      color: var(--accent-yellow);
+    }
+
+    .device-tag {
+      font-size: 0.68rem;
+      color: var(--text-sub);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 6px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-sub);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-blue);
+      color: #0f172a;
+      border-color: var(--accent-blue);
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    select, input, textarea {
+      width: 100%;
+      padding: 12px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-main);
+      /* 16px or larger, or iOS zooms the whole page in when a field is focused. */
+      font-size: 16px;
+      outline: none;
+    }
+
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .opt-btn {
+      padding: 12px 4px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .opt-btn.selected {
+      background: #0284c7;
+      border-color: var(--accent-blue);
+      color: white;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--accent-purple);
+    }
+
+    .action-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: #0f172a;
+    }
+
+    .btn-sync {
+      background: var(--accent-yellow);
+      color: #0f172a;
+    }
+
+    .btn-voice {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .grid-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .matrix-cell {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 6px;
+      text-align: center;
+    }
+
+    .cell-title {
+      font-size: 0.7rem;
+      color: var(--text-sub);
+      text-transform: uppercase;
+    }
+
+    .cell-count {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin: 4px 0;
+    }
+
+    .status-ok { color: var(--accent-green); }
+    .status-warn { color: var(--accent-yellow); }
+    .status-empty { color: var(--accent-red); }
+
+    .run-list-item {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+
+    .run-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      color: var(--accent-blue);
+      margin-bottom: 4px;
+    }
+
+    .run-meta {
+      color: var(--text-sub);
+      font-size: 0.75rem;
+      margin-bottom: 4px;
+    }
+
+    .sync-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: #334155;
+      color: var(--accent-yellow);
+    }
+
+    .lift-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: #3b0764;
+      color: var(--accent-purple);
+      margin-left: 4px;
+    }
+
+    .backup-nudge {
+      background: #3b0764;
+      border: 1px solid var(--accent-purple);
+      color: var(--text-main);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1>TRACK.AI LOG ASSISTANT</h1>
+      <span class="device-tag">Samsung &amp; iPhone Home Screen Compatible</span>
+    </div>
+    <span class="badge" id="offline-status">READY</span>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="showTab('log')">LOG RUN</button>
+    <button class="tab-btn" onclick="showTab('gap')">DATA HOLES</button>
+    <button class="tab-btn" onclick="showTab('history')">HISTORY (<span id="run-count-badge">0</span>)</button>
+  </div>
+
+  <!-- TAB 1: LOG RUN -->
+  <div id="tab-log">
+    <div class="card">
+      <div class="card-title">
+        <span>CURRENT SESSION &amp; RUN</span>
+        <span style="color: var(--accent-green); font-size: 0.8rem;" id="auto-save-indicator">Draft Auto-Saved</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" class="form-group">
+        <div>
+          <label>Filming Day</label>
+          <select id="day-select" onchange="autoSaveDraft()">
+            <option value="1">Day 1 (Warmup)</option>
+            <option value="2">Day 2 (Green Focus)</option>
+            <option value="3">Day 3 (Green/Blue)</option>
+            <option value="4">Day 4 (Blue Slid)</option>
+            <option value="5">Day 5 (Blue Carved)</option>
+            <option value="6">Day 6 (Blue Long)</option>
+            <option value="7">Day 7 (Biomechanics)</option>
+            <option value="8">Day 8 (Switch Focus)</option>
+            <option value="9">Day 9 (Freeride Benchmark)</option>
+            <option value="10">Day 10 (Black Short Slid)</option>
+            <option value="11">Day 11 (Black Short Carved)</option>
+            <option value="12">Day 12 (Black Medium Slid)</option>
+            <option value="13">Day 13 (Black Medium Carved)</option>
+            <option value="14">Day 14 (Black Long Slid)</option>
+            <option value="15">Day 15 (Black Long Carved)</option>
+            <option value="16">Day 16 (Master Sequence)</option>
+            <option value="17">Day 17 (Bumps/Steeps)</option>
+            <option value="18">Day 18 (Powder/Trees)</option>
+            <option value="19">Day 19 (Expert Carve)</option>
+            <option value="20">Day 20 (Final Wrap)</option>
+          </select>
+        </div>
+        <div>
+          <label>Run # (1 - 20)</label>
+          <input type="number" id="run-num" value="1" min="1" max="20" oninput="autoSaveDraft()">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Run Category</label>
+        <select id="run-cat" onchange="updateManeuverDropdown(); autoSaveDraft();">
+          <option value="GROOMED">Groomed Turn Matrix (Primary Focus)</option>
+          <option value="SHORT_FOCUS">Repeated Short Radius Focus Set</option>
+          <option value="FREERIDE">Free Riding (Unstructured Telemetry)</option>
+          <option value="SECONDARY">Secondary CASI Library (Bumps, Switch, etc.)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Specific Maneuver / Drill</label>
+        <select id="maneuver-select" onchange="autoSaveDraft()"></select>
+      </div>
+    </div>
+
+    <!-- PRIMARY METRICS CARD -->
+    <div class="card">
+      <div class="card-title">ENVIRONMENT &amp; CAMERA METRICS</div>
+
+      <div class="form-group">
+        <label>Terrain Pitch</label>
+        <div class="btn-group" id="terrain-group">
+          <div class="opt-btn selected" onclick="selectBtn('terrain', 'GREEN', this)">GREEN</div>
+          <div class="opt-btn" onclick="selectBtn('terrain', 'BLUE', this)">BLUE</div>
+          <div class="opt-btn" onclick="selectBtn('terrain', 'BLACK', this)">BLACK</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Turn Radius Focus</label>
+        <div class="btn-group" id="radius-group">
+          <div class="opt-btn selected" onclick="selectBtn('radius', 'SHORT', this)">SHORT</div>
+          <div class="opt-btn" onclick="selectBtn('radius', 'MEDIUM', this)">MEDIUM</div>
+          <div class="opt-btn" onclick="selectBtn('radius', 'LONG', this)">LONG</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Steering Type</label>
+        <div class="btn-group" id="steering-group">
+          <div class="opt-btn selected" onclick="selectBtn('steering', 'SLID', this)">SLID</div>
+          <div class="opt-btn" onclick="selectBtn('steering', 'CARVED', this)">CARVED</div>
+          <div class="opt-btn" onclick="selectBtn('steering', 'HYBRID', this)">HYBRID</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Snow Condition</label>
+        <select id="snow-condition" onchange="autoSaveDraft()">
+          <option value="HARDPACK">Hardpack / Groomed</option>
+          <option value="SOFT">Soft / Compressed</option>
+          <option value="FRESH">Fresh Powder (5-15cm)</option>
+          <option value="ICY">Icy / Wind Crust</option>
+          <option value="POWDERY">Powdery / Deep (&gt;15cm)</option>
+          <option value="SLUSHY">Slushy / Heavy</option>
+          <option value="SPRING_WET">Spring Wet / Corn</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Camera Setup &amp; Perspective</label>
+        <select id="camera-setup" onchange="autoSaveDraft()">
+          <option value="FOLLOW_CAM">A-Cam: Follow-Cam Rider (Behind/Alongside)</option>
+          <option value="STATIC_ABOVE">B-Cam: Drive-By Above (Turn Entry)</option>
+          <option value="STATIC_SIDE">B-Cam: Drive-By Side (Turn Apex)</option>
+          <option value="STATIC_BELOW">B-Cam: Drive-By Below (Turn Exit)</option>
+          <option value="DUAL_CAM">Dual-Cam (Follow-Cam + Static B-Cam)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CHAIRLIFT OVERRUN & SYNCHRONIZATION CARD -->
+    <div class="card">
+      <div class="card-title">TELEMETRY SYNC &amp; CHAIRLIFT OVERRUN</div>
+
+      <div class="form-group">
+        <label class="checkbox-container">
+          <input type="checkbox" id="chairlift-overrun-check" onchange="autoSaveDraft()">
+          <span>🚡 Recording Includes Chairlift Ride (Forgot to stop at bottom)</span>
+        </label>
+      </div>
+
+      <button class="action-btn btn-sync" onclick="recordClackSync()">
+        ⚡ RECORD SYNC CLACK MARK (At Top / Start of Run)
+      </button>
+      <div id="last-clack-display" style="font-size:0.75rem; color:var(--accent-yellow); text-align:center; margin-bottom:12px;">
+        Clack Mark: None
+      </div>
+
+      <button class="action-btn btn-voice" onclick="toggleVoiceInput()">
+        🎤 <span id="voice-btn-text">TAP TO VOICE NOTE</span>
+      </button>
+
+      <div class="form-group">
+        <label>Run Comments / Biomechanics Notes</label>
+        <textarea id="run-notes" rows="3" placeholder="e.g., Hold heelside edge through apex, slight tail chatter on turn 2..." oninput="autoSaveDraft()"></textarea>
+      </div>
+
+      <button class="action-btn btn-primary" onclick="saveRunRecord()">
+        💾 SAVE &amp; LOG RUN RECORD
+      </button>
+    </div>
+  </div>
+
+  <!-- TAB 2: GAP ANALYSIS (HOLES IN DATA) -->
+  <div id="tab-gap" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        <span>GROOMED MATRIX GAP ANALYSIS</span>
+        <span style="font-size:0.8rem; color:var(--text-sub);" id="matrix-coverage-percent">0% Met</span>
+      </div>
+      <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:12px;">
+        Tracking minimum target quota of 5 filmed runs per Groomed Matrix Cell (Radius x Pitch x Steering).
+      </p>
+
+      <div class="grid-matrix" id="matrix-grid-container"></div>
+      <p id="hybrid-note" style="font-size:0.75rem; color:var(--accent-yellow); margin-top:12px;"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">CRITICAL HOLES IN DATA</div>
+      <div id="missing-holes-list" style="font-size:0.85rem; color:var(--text-sub);">
+        All cells currently pending filmed runs.
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: HISTORY & EXPORT -->
+  <div id="tab-history" style="display:none;">
+    <div class="card">
+      <div class="card-title">
+        <span>SAVED RUN LOGS</span>
+        <button style="background:var(--accent-blue); color:#0f172a; border:none; padding:4px 8px; border-radius:6px; font-weight:700; font-size:0.75rem; cursor:pointer;" onclick="exportDataCSV()">EXPORT CSV</button>
+      </div>
+      <div id="backup-nudge" class="backup-nudge" style="display:none;"></div>
+      <div id="run-history-container">
+        <div style="color:var(--text-sub); font-size:0.85rem; text-align:center; padding:20px;">No saved runs yet today.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeState = { terrain: 'GREEN', radius: 'SHORT', steering: 'SLID', clackTimestamp: null };
+    let runsDatabase = [];
+    let isRecordingVoice = false;
+    let recognition = null;
+
+    const MANEUVERS = {
+      GROOMED: [
+        { id: 'GT-01', name: 'Green Short Radius Slid Turn' },
+        { id: 'GT-02', name: 'Green Short Radius Pure Carved Turn' },
+        { id: 'GT-03', name: 'Green Medium Radius Slid Turn' },
+        { id: 'GT-04', name: 'Green Medium Radius Pure Carved Turn' },
+        { id: 'GT-05', name: 'Green Long Radius Slid Turn' },
+        { id: 'GT-06', name: 'Green Long Radius Pure Carved Turn' },
+        { id: 'GT-07', name: 'Blue Short Radius Slid Turn' },
+        { id: 'GT-08', name: 'Blue Short Radius Pure Carved Turn' },
+        { id: 'GT-09', name: 'Blue Medium Radius Slid Turn' },
+        { id: 'GT-10', name: 'Blue Medium Radius Pure Carved Turn' },
+        { id: 'GT-11', name: 'Blue Long Radius Slid Turn' },
+        { id: 'GT-12', name: 'Blue Long Radius Pure Carved Turn' },
+        { id: 'GT-13', name: 'Black Short Radius Slid Turn' },
+        { id: 'GT-14', name: 'Black Short Radius Pure Carved Turn' },
+        { id: 'GT-15', name: 'Black Medium Radius Slid Turn' },
+        { id: 'GT-16', name: 'Black Medium Radius Pure Carved Turn' },
+        { id: 'GT-17', name: 'Black Long Radius Slid Turn' },
+        { id: 'GT-18', name: 'Black Long Radius Pure Carved Turn' }
+      ],
+      SHORT_FOCUS: [
+        { id: 'SF-01', name: 'Short Radius High-Cadence Edge Roll' },
+        { id: 'SF-02', name: 'Short Radius Steep Corridor Slid Set' },
+        { id: 'SF-03', name: 'Short Radius Un-Weighted Transition Set' }
+      ],
+      FREERIDE: [
+        { id: 'FR-01', name: 'Unstructured Freeride Full Telemetry Run' },
+        { id: 'FR-02', name: 'All-Mountain Terrain Adaptation Flow' }
+      ],
+      SECONDARY: [
+        { id: 'SEC-BMP', name: 'Bumps: Trough Steering & Active Flexion' },
+        { id: 'SEC-STP', name: 'Steeps: Down Un-weighted Jump Release' },
+        { id: 'SEC-SWT', name: 'Switch: Linked Switch Carved Turns' },
+        { id: 'SEC-FLT', name: 'Flatland: Nose/Tail Presses & Butter 180s' },
+        { id: 'SEC-FST', name: 'Freestyle: Straight Air Indy/Mute Grab' },
+        { id: 'SEC-BIO', name: 'Specialty: Ankle Dorsiflexion Hold Demo' }
+      ]
+    };
+
+    window.onload = function() {
+      loadSavedDatabase();
+      loadDraftCache();
+      updateManeuverDropdown();
+      renderGapAnalysis();
+      initSpeechRecognition();
+      initConnectionBadge();
+    };
+
+    function showTab(tabName) {
+      document.getElementById('tab-log').style.display = tabName === 'log' ? 'block' : 'none';
+      document.getElementById('tab-gap').style.display = tabName === 'gap' ? 'block' : 'none';
+      document.getElementById('tab-history').style.display = tabName === 'history' ? 'block' : 'none';
+
+      document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', (tabName === 'log' && idx === 0) || (tabName === 'gap' && idx === 1) || (tabName === 'history' && idx === 2));
+      });
+
+      if (tabName === 'gap') renderGapAnalysis();
+      if (tabName === 'history') renderHistory();
+    }
+
+    function selectBtn(group, val, elem) {
+      if (!elem) return; // a restore for a value with no matching button must not throw
+      activeState[group] = val;
+      const parent = elem.parentElement;
+      parent.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+      elem.classList.add('selected');
+      autoSaveDraft();
+    }
+
+    function updateManeuverDropdown() {
+      const cat = document.getElementById('run-cat').value;
+      const select = document.getElementById('maneuver-select');
+      select.innerHTML = '';
+
+      MANEUVERS[cat].forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.id}: ${m.name}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function recordClackSync() {
+      const now = new Date();
+      activeState.clackTimestamp = now.toISOString();
+      document.getElementById('last-clack-display').textContent = `Clack Sync Mark Recorded: ${now.toLocaleTimeString()}`;
+      autoSaveDraft();
+    }
+
+    function autoSaveDraft() {
+      const draft = {
+        day: document.getElementById('day-select').value,
+        runNum: document.getElementById('run-num').value,
+        cat: document.getElementById('run-cat').value,
+        maneuver: document.getElementById('maneuver-select').value,
+        terrain: activeState.terrain,
+        radius: activeState.radius,
+        steering: activeState.steering,
+        snow: document.getElementById('snow-condition').value,
+        camera: document.getElementById('camera-setup').value,
+        chairlift: document.getElementById('chairlift-overrun-check').checked,
+        notes: document.getElementById('run-notes').value,
+        clack: activeState.clackTimestamp
+      };
+      localStorage.setItem('track_ai_run_draft', JSON.stringify(draft));
+      document.getElementById('auto-save-indicator').textContent = 'Draft Auto-Saved';
+    }
+
+    function loadDraftCache() {
+      const savedDraft = localStorage.getItem('track_ai_run_draft');
+      if (savedDraft) {
+        try {
+          const draft = JSON.parse(savedDraft);
+          if (draft.day) document.getElementById('day-select').value = draft.day;
+          if (draft.runNum) document.getElementById('run-num').value = draft.runNum;
+          if (draft.cat) {
+            document.getElementById('run-cat').value = draft.cat;
+            updateManeuverDropdown();
+          }
+          if (draft.maneuver) document.getElementById('maneuver-select').value = draft.maneuver;
+          if (draft.terrain) selectBtn('terrain', draft.terrain, document.querySelector(`#terrain-group .opt-btn[onclick*="${draft.terrain}"]`));
+          if (draft.radius) selectBtn('radius', draft.radius, document.querySelector(`#radius-group .opt-btn[onclick*="${draft.radius}"]`));
+          if (draft.steering) selectBtn('steering', draft.steering, document.querySelector(`#steering-group .opt-btn[onclick*="${draft.steering}"]`));
+          if (draft.snow) document.getElementById('snow-condition').value = draft.snow;
+          if (draft.camera) document.getElementById('camera-setup').value = draft.camera;
+          if (draft.chairlift !== undefined) document.getElementById('chairlift-overrun-check').checked = draft.chairlift;
+          if (draft.notes) document.getElementById('run-notes').value = draft.notes;
+          if (draft.clack) {
+            activeState.clackTimestamp = draft.clack;
+            const d = new Date(draft.clack);
+            document.getElementById('last-clack-display').textContent = `Clack Sync Mark Recorded: ${d.toLocaleTimeString()}`;
+          }
+        } catch(e) {}
+      }
+    }
+
+    function saveRunRecord() {
+      const now = new Date();
+      const record = {
+        id: 'RUN-' + Date.now(),
+        day: document.getElementById('day-select').value,
+        runNum: document.getElementById('run-num').value,
+        cat: document.getElementById('run-cat').value,
+        maneuver: document.getElementById('maneuver-select').value,
+        terrain: activeState.terrain,
+        radius: activeState.radius,
+        steering: activeState.steering,
+        snow: document.getElementById('snow-condition').value,
+        camera: document.getElementById('camera-setup').value,
+        chairliftOverrun: document.getElementById('chairlift-overrun-check').checked,
+        notes: document.getElementById('run-notes').value,
+        clack: activeState.clackTimestamp,
+        timestamp: now.toISOString(),
+        timeDisplay: now.toLocaleTimeString()
+      };
+
+      runsDatabase.unshift(record);
+      // Write before touching the form: if storage is full this throws, and the
+      // run must not be silently cleared off the screen as though it were saved.
+      try {
+        localStorage.setItem('track_ai_runs_db', JSON.stringify(runsDatabase));
+      } catch (err) {
+        runsDatabase.shift();
+        alert('COULD NOT SAVE — phone storage is full.\n\nExport your CSV now, then delete something and try again. Nothing was lost from this screen.');
+        return;
+      }
+
+      let nextRun = parseInt(record.runNum) + 1;
+      document.getElementById('run-num').value = nextRun;
+      document.getElementById('run-notes').value = '';
+      document.getElementById('chairlift-overrun-check').checked = false;
+      activeState.clackTimestamp = null;
+      document.getElementById('last-clack-display').textContent = 'Clack Mark: None';
+      document.getElementById('run-count-badge').textContent = runsDatabase.length;
+
+      alert(`Run ${record.runNum} Logged Successfully!`);
+      autoSaveDraft();
+    }
+
+    function loadSavedDatabase() {
+      const saved = localStorage.getItem('track_ai_runs_db');
+      if (saved) {
+        try {
+          runsDatabase = JSON.parse(saved) || [];
+        } catch (e) {
+          runsDatabase = [];
+        }
+        document.getElementById('run-count-badge').textContent = runsDatabase.length;
+      }
+    }
+
+    function renderGapAnalysis() {
+      const grid = document.getElementById('matrix-grid-container');
+      grid.innerHTML = '';
+
+      const pitches = ['GREEN', 'BLUE', 'BLACK'];
+      const radii = ['SHORT', 'MEDIUM', 'LONG'];
+      const steerings = ['SLID', 'CARVED'];
+
+      let metCount = 0;
+      let totalCells = 18;
+      let missingList = [];
+
+      pitches.forEach(p => {
+        radii.forEach(r => {
+          steerings.forEach(s => {
+            const count = runsDatabase.filter(item => item.terrain === p && item.radius === r && item.steering === s).length;
+            const target = 5;
+            const statusClass = count >= target ? 'status-ok' : (count > 0 ? 'status-warn' : 'status-empty');
+
+            if (count >= target) metCount++;
+            else missingList.push(`${p} ${r} ${s} (${count}/5)`);
+
+            const cell = document.createElement('div');
+            cell.className = 'matrix-cell';
+            cell.innerHTML = `
+              <div class="cell-title">${p.substring(0,3)} ${r.substring(0,2)} ${s.substring(0,3)}</div>
+              <div class="cell-count ${statusClass}">${count}/5</div>
+            `;
+            grid.appendChild(cell);
+          });
+        });
+      });
+
+      const percent = Math.round((metCount / totalCells) * 100);
+      document.getElementById('matrix-coverage-percent').textContent = `${percent}% Met`;
+
+      // The matrix only counts SLID and CARVED. A HYBRID run is still logged and
+      // still exported, but it fills no cell — say so, rather than letting the
+      // run quietly go missing from the quota.
+      const hybrid = runsDatabase.filter(item => item.steering === 'HYBRID').length;
+      document.getElementById('hybrid-note').textContent = hybrid
+        ? `${hybrid} HYBRID run${hybrid === 1 ? '' : 's'} logged — these count toward no matrix cell (the matrix is SLID vs CARVED only). They are still saved and exported.`
+        : '';
+
+      const holesContainer = document.getElementById('missing-holes-list');
+      if (missingList.length === 0) {
+        holesContainer.innerHTML = '<span style="color:var(--accent-green);">🎉 All 18 Groomed Matrix Cells Have Met Their 5-Run Quota!</span>';
+      } else {
+        holesContainer.innerHTML = '<strong>Under-represented Cells:</strong><br>' + missingList.slice(0, 8).join('<br>') + (missingList.length > 8 ? `<br><em>+ ${missingList.length - 8} more...</em>` : '');
+      }
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('run-history-container');
+      container.innerHTML = '';
+
+      const nudge = document.getElementById('backup-nudge');
+      const lastExport = Number(localStorage.getItem('track_ai_last_export') || 0);
+      const unexported = runsDatabase.filter(r => new Date(r.timestamp).getTime() > lastExport).length;
+      if (unexported > 0) {
+        nudge.style.display = 'block';
+        nudge.innerHTML = `<strong>${unexported} run${unexported === 1 ? '' : 's'} not backed up yet.</strong> Export the CSV at the end of each day — this phone is the only copy until you do.`;
+      } else {
+        nudge.style.display = 'none';
+      }
+
+      if (runsDatabase.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem; text-align:center; padding:20px;">No saved runs yet today.</div>';
+        return;
+      }
+
+      runsDatabase.forEach(run => {
+        const item = document.createElement('div');
+        item.className = 'run-list-item';
+        item.innerHTML = `
+          <div class="run-header">
+            <span>Day ${run.day} - Run #${run.runNum} [${run.maneuver}]</span>
+            <span>${run.timeDisplay}</span>
+          </div>
+          <div class="run-meta">${run.terrain} | ${run.radius} TURN | ${run.steering} | ${run.snow}</div>
+          <div class="run-meta">Cam: ${run.camera} ${run.clack ? '<span class="sync-badge">⚡ SYNC MARKED</span>' : ''} ${run.chairliftOverrun ? '<span class="lift-badge">🚡 LIFT OVERRUN</span>' : ''}</div>
+          ${run.notes ? `<div style="font-size:0.8rem; color:var(--text-main); margin-top:4px;">"${run.notes}"</div>` : ''}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function exportDataCSV() {
+      if (runsDatabase.length === 0) {
+        alert('No data to export.');
+        return;
+      }
+
+      let csv = 'Run_ID,Day,Run_Num,Category,Maneuver,Terrain,Radius,Steering,Snow,Camera,Chairlift_Overrun,Sync_Clack,Timestamp,Notes\n';
+      runsDatabase.forEach(r => {
+        csv += `"${r.id}",${r.day},${r.runNum},"${r.cat}","${r.maneuver}","${r.terrain}","${r.radius}","${r.steering}","${r.snow}","${r.camera}",${r.chairliftOverrun ? 'TRUE' : 'FALSE'},"${r.clack || ''}","${r.timestamp}","${String(r.notes || '').replace(/"/g, '""')}"\n`;
+      });
+
+      const stamp = new Date().toISOString().slice(0, 10);
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const file = `Argentina_Snowboard_Run_Logs_${stamp}.csv`;
+
+      // iOS standalone ignores a download attribute, so an anchor click looks like
+      // nothing happened. The share sheet is the path that actually reaches Files,
+      // AirDrop or a message; the anchor stays as the desktop/Android fallback.
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], file, { type: 'text/csv' })] })) {
+        navigator.share({ files: [new File([blob], file, { type: 'text/csv' })], title: file })
+          .then(markExported)
+          .catch(() => {});
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      markExported();
+    }
+
+    function markExported() {
+      localStorage.setItem('track_ai_last_export', String(Date.now()));
+      renderHistory();
+    }
+
+    function initSpeechRecognition() {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onresult = function(event) {
+          const text = event.results[0][0].transcript;
+          const notesBox = document.getElementById('run-notes');
+          notesBox.value = notesBox.value ? notesBox.value + ' ' + text : text;
+          autoSaveDraft();
+          stopVoiceInput();
+        };
+
+        recognition.onerror = function() { stopVoiceInput(); };
+        recognition.onend = function() { stopVoiceInput(); };
+      }
+    }
+
+    function toggleVoiceInput() {
+      if (!recognition) {
+        alert('Speech recognition is not supported on this browser. You can type notes directly.');
+        return;
+      }
+      if (!navigator.onLine) {
+        alert('Voice notes need a signal — the phone sends the audio away to be transcribed.\n\nNo bars on the mountain means you have to type. Everything else in this app works offline.');
+        return;
+      }
+
+      if (isRecordingVoice) {
+        recognition.stop();
+        stopVoiceInput();
+      } else {
+        recognition.start();
+        isRecordingVoice = true;
+        document.getElementById('voice-btn-text').textContent = 'LISTENING... SPEAK NOW';
+      }
+    }
+
+    function stopVoiceInput() {
+      isRecordingVoice = false;
+      document.getElementById('voice-btn-text').textContent = 'TAP TO VOICE NOTE';
+    }
+
+    // The header badge told you the cache was active whether it was or not. Make
+    // it report the one thing that matters on a mountain: are you offline, and is
+    // the app safe to keep using?
+    function initConnectionBadge() {
+      const badge = document.getElementById('offline-status');
+      const paint = () => {
+        if (navigator.onLine) {
+          badge.textContent = 'ONLINE';
+          badge.classList.remove('is-offline');
+        } else {
+          badge.textContent = 'OFFLINE — LOGGING OK';
+          badge.classList.add('is-offline');
+        }
+      };
+      window.addEventListener('online', paint);
+      window.addEventListener('offline', paint);
+      paint();
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

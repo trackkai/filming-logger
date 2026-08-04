@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Track.AI Snowboard Filming Logger</title>
+  <title>Track Logger</title>
 
   <!-- Installed-app plumbing. apple-touch-icon and apple-mobile-web-app-* are what
        make iOS treat this as a real app instead of a Safari bookmark; the manifest
@@ -12,7 +12,7 @@
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Track Log">
+  <meta name="apple-mobile-web-app-title" content="Track Logger">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 
@@ -236,24 +236,52 @@
       margin-top: 10px;
     }
 
+    /* The run colour IS the pitch, so the label no longer has to spell it out and
+       the radius and steering fit in full. */
     .matrix-cell {
       background: #0f172a;
       border: 1px solid var(--border-color);
+      border-left-width: 5px;
       border-radius: 8px;
-      padding: 10px 6px;
+      padding: 9px 6px;
       text-align: center;
+    }
+
+    .matrix-cell.pitch-GREEN {
+      background: rgba(34, 197, 94, 0.20);
+      border-color: rgba(34, 197, 94, 0.45);
+      border-left-color: var(--accent-green);
+    }
+    .matrix-cell.pitch-BLUE {
+      background: rgba(56, 189, 248, 0.20);
+      border-color: rgba(56, 189, 248, 0.45);
+      border-left-color: var(--accent-blue);
+    }
+    .matrix-cell.pitch-BLACK {
+      background: #05070d;
+      border-color: #475569;
+      border-left-color: #cbd5e1;
     }
 
     .cell-title {
       font-size: 0.7rem;
-      color: var(--text-sub);
+      line-height: 1.35;
+      color: var(--text-main);
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
+    /* A dark chip under the number so the red/amber/green status stays legible on
+       every one of the three backgrounds. */
     .cell-count {
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 800;
-      margin: 4px 0;
+      margin: 5px 0 0;
+      background: rgba(2, 6, 16, 0.62);
+      border-radius: 6px;
+      padding: 3px 0;
+      font-variant-numeric: tabular-nums;
     }
 
     .status-ok { color: var(--accent-green); }
@@ -293,16 +321,33 @@
       color: var(--accent-yellow);
     }
 
-    .lift-badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.65rem;
-      font-weight: 700;
-      background: #3b0764;
-      color: var(--accent-purple);
-      margin-left: 4px;
+    /* Every short cell is listed. Capped height so the card cannot run off the
+       screen, with its own scroll rather than the page's. */
+    .holes-scroll {
+      max-height: 46vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
     }
+
+    .hole-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 11px;
+      border-bottom: 1px solid var(--border-color);
+      border-left: 4px solid transparent;
+      font-size: 0.82rem;
+      color: var(--text-main);
+    }
+    .hole-row:last-child { border-bottom: 0; }
+    .hole-row b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .hole-row.pitch-GREEN { border-left-color: var(--accent-green); }
+    .hole-row.pitch-BLUE  { border-left-color: var(--accent-blue); }
+    .hole-row.pitch-BLACK { border-left-color: #cbd5e1; }
 
     .backup-nudge {
       background: #3b0764;
@@ -319,8 +364,7 @@
 
   <header>
     <div>
-      <h1>TRACK.AI LOG ASSISTANT</h1>
-      <span class="device-tag">Samsung &amp; iPhone Home Screen Compatible</span>
+      <h1>Track Logger</h1>
     </div>
     <span class="badge" id="offline-status">READY</span>
   </header>
@@ -443,16 +487,9 @@
       </div>
     </div>
 
-    <!-- CHAIRLIFT OVERRUN & SYNCHRONIZATION CARD -->
+    <!-- TELEMETRY SYNC CARD -->
     <div class="card">
-      <div class="card-title">TELEMETRY SYNC &amp; CHAIRLIFT OVERRUN</div>
-
-      <div class="form-group">
-        <label class="checkbox-container">
-          <input type="checkbox" id="chairlift-overrun-check" onchange="autoSaveDraft()">
-          <span>🚡 Recording Includes Chairlift Ride (Forgot to stop at bottom)</span>
-        </label>
-      </div>
+      <div class="card-title">TELEMETRY SYNC</div>
 
       <button class="action-btn btn-sync" onclick="recordClackSync()">
         ⚡ RECORD SYNC CLACK MARK (At Top / Start of Run)
@@ -621,7 +658,6 @@
         steering: activeState.steering,
         snow: document.getElementById('snow-condition').value,
         camera: document.getElementById('camera-setup').value,
-        chairlift: document.getElementById('chairlift-overrun-check').checked,
         notes: document.getElementById('run-notes').value,
         clack: activeState.clackTimestamp
       };
@@ -646,7 +682,6 @@
           if (draft.steering) selectBtn('steering', draft.steering, document.querySelector(`#steering-group .opt-btn[onclick*="${draft.steering}"]`));
           if (draft.snow) document.getElementById('snow-condition').value = draft.snow;
           if (draft.camera) document.getElementById('camera-setup').value = draft.camera;
-          if (draft.chairlift !== undefined) document.getElementById('chairlift-overrun-check').checked = draft.chairlift;
           if (draft.notes) document.getElementById('run-notes').value = draft.notes;
           if (draft.clack) {
             activeState.clackTimestamp = draft.clack;
@@ -670,7 +705,6 @@
         steering: activeState.steering,
         snow: document.getElementById('snow-condition').value,
         camera: document.getElementById('camera-setup').value,
-        chairliftOverrun: document.getElementById('chairlift-overrun-check').checked,
         notes: document.getElementById('run-notes').value,
         clack: activeState.clackTimestamp,
         timestamp: now.toISOString(),
@@ -691,7 +725,6 @@
       let nextRun = parseInt(record.runNum) + 1;
       document.getElementById('run-num').value = nextRun;
       document.getElementById('run-notes').value = '';
-      document.getElementById('chairlift-overrun-check').checked = false;
       activeState.clackTimestamp = null;
       document.getElementById('last-clack-display').textContent = 'Clack Mark: None';
       document.getElementById('run-count-badge').textContent = runsDatabase.length;
@@ -732,14 +765,17 @@
             const statusClass = count >= target ? 'status-ok' : (count > 0 ? 'status-warn' : 'status-empty');
 
             if (count >= target) metCount++;
-            else missingList.push(`${p} ${r} ${s} (${count}/5)`);
+            else missingList.push({ pitch: p, label: `${p} · ${r} · ${s}`, count, cls: statusClass });
 
             const cell = document.createElement('div');
-            cell.className = 'matrix-cell';
+            cell.className = `matrix-cell pitch-${p}`;
+            // The pitch is carried by the colour, so the words are the radius and
+            // the steering, spelled out.
             cell.innerHTML = `
-              <div class="cell-title">${p.substring(0,3)} ${r.substring(0,2)} ${s.substring(0,3)}</div>
+              <div class="cell-title">${r}<br>${s}</div>
               <div class="cell-count ${statusClass}">${count}/5</div>
             `;
+            cell.title = `${p} · ${r} radius · ${s} — ${count} of 5 filmed`;
             grid.appendChild(cell);
           });
         });
@@ -760,7 +796,12 @@
       if (missingList.length === 0) {
         holesContainer.innerHTML = '<span style="color:var(--accent-green);">🎉 All 18 Groomed Matrix Cells Have Met Their 5-Run Quota!</span>';
       } else {
-        holesContainer.innerHTML = '<strong>Under-represented Cells:</strong><br>' + missingList.slice(0, 8).join('<br>') + (missingList.length > 8 ? `<br><em>+ ${missingList.length - 8} more...</em>` : '');
+        // The whole list, always. Truncating at 8 hid the very cells this panel
+        // exists to surface — the scroll box is what makes room for all of them.
+        holesContainer.innerHTML = `<strong>${missingList.length} cell${missingList.length === 1 ? '' : 's'} still short of 5:</strong>`
+          + '<div class="holes-scroll">'
+          + missingList.map((row) => `<div class="hole-row pitch-${row.pitch}"><span>${row.label}</span><b class="${row.cls}">${row.count}/5</b></div>`).join('')
+          + '</div>';
       }
     }
 
@@ -792,7 +833,7 @@
             <span>${run.timeDisplay}</span>
           </div>
           <div class="run-meta">${run.terrain} | ${run.radius} TURN | ${run.steering} | ${run.snow}</div>
-          <div class="run-meta">Cam: ${run.camera} ${run.clack ? '<span class="sync-badge">⚡ SYNC MARKED</span>' : ''} ${run.chairliftOverrun ? '<span class="lift-badge">🚡 LIFT OVERRUN</span>' : ''}</div>
+          <div class="run-meta">Cam: ${run.camera} ${run.clack ? '<span class="sync-badge">⚡ SYNC MARKED</span>' : ''}</div>
           ${run.notes ? `<div style="font-size:0.8rem; color:var(--text-main); margin-top:4px;">"${run.notes}"</div>` : ''}
         `;
         container.appendChild(item);
@@ -805,9 +846,9 @@
         return;
       }
 
-      let csv = 'Run_ID,Day,Run_Num,Category,Maneuver,Terrain,Radius,Steering,Snow,Camera,Chairlift_Overrun,Sync_Clack,Timestamp,Notes\n';
+      let csv = 'Run_ID,Day,Run_Num,Category,Maneuver,Terrain,Radius,Steering,Snow,Camera,Sync_Clack,Timestamp,Notes\n';
       runsDatabase.forEach(r => {
-        csv += `"${r.id}",${r.day},${r.runNum},"${r.cat}","${r.maneuver}","${r.terrain}","${r.radius}","${r.steering}","${r.snow}","${r.camera}",${r.chairliftOverrun ? 'TRUE' : 'FALSE'},"${r.clack || ''}","${r.timestamp}","${String(r.notes || '').replace(/"/g, '""')}"\n`;
+        csv += `"${r.id}",${r.day},${r.runNum},"${r.cat}","${r.maneuver}","${r.terrain}","${r.radius}","${r.steering}","${r.snow}","${r.camera}","${r.clack || ''}","${r.timestamp}","${String(r.notes || '').replace(/"/g, '""')}"\n`;
       });
 
       const stamp = new Date().toISOString().slice(0, 10);

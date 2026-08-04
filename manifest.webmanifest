@@ -1,6 +1,6 @@
 {
-  "name": "Track.AI Filming Logger",
-  "short_name": "Track Log",
+  "name": "Track Logger",
+  "short_name": "Track Logger",
   "description": "Log every filmed snowboard run — matrix coverage, sync marks and notes, offline on the mountain.",
   "start_url": "./index.html",
   "scope": "./",

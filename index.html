@@ -385,28 +385,28 @@
 
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" class="form-group">
         <div>
-          <label>Filming Day</label>
+          <label>Day</label>
           <select id="day-select" onchange="autoSaveDraft()">
-            <option value="1">Day 1 (Warmup)</option>
-            <option value="2">Day 2 (Green Focus)</option>
-            <option value="3">Day 3 (Green/Blue)</option>
-            <option value="4">Day 4 (Blue Slid)</option>
-            <option value="5">Day 5 (Blue Carved)</option>
-            <option value="6">Day 6 (Blue Long)</option>
-            <option value="7">Day 7 (Biomechanics)</option>
-            <option value="8">Day 8 (Switch Focus)</option>
-            <option value="9">Day 9 (Freeride Benchmark)</option>
-            <option value="10">Day 10 (Black Short Slid)</option>
-            <option value="11">Day 11 (Black Short Carved)</option>
-            <option value="12">Day 12 (Black Medium Slid)</option>
-            <option value="13">Day 13 (Black Medium Carved)</option>
-            <option value="14">Day 14 (Black Long Slid)</option>
-            <option value="15">Day 15 (Black Long Carved)</option>
-            <option value="16">Day 16 (Master Sequence)</option>
-            <option value="17">Day 17 (Bumps/Steeps)</option>
-            <option value="18">Day 18 (Powder/Trees)</option>
-            <option value="19">Day 19 (Expert Carve)</option>
-            <option value="20">Day 20 (Final Wrap)</option>
+            <option value="1">Day 1</option>
+            <option value="2">Day 2</option>
+            <option value="3">Day 3</option>
+            <option value="4">Day 4</option>
+            <option value="5">Day 5</option>
+            <option value="6">Day 6</option>
+            <option value="7">Day 7</option>
+            <option value="8">Day 8</option>
+            <option value="9">Day 9</option>
+            <option value="10">Day 10</option>
+            <option value="11">Day 11</option>
+            <option value="12">Day 12</option>
+            <option value="13">Day 13</option>
+            <option value="14">Day 14</option>
+            <option value="15">Day 15</option>
+            <option value="16">Day 16</option>
+            <option value="17">Day 17</option>
+            <option value="18">Day 18</option>
+            <option value="19">Day 19</option>
+            <option value="20">Day 20</option>
           </select>
         </div>
         <div>
@@ -421,7 +421,7 @@
           <option value="GROOMED">Groomed Turn Matrix (Primary Focus)</option>
           <option value="SHORT_FOCUS">Repeated Short Radius Focus Set</option>
           <option value="FREERIDE">Free Riding (Unstructured Telemetry)</option>
-          <option value="SECONDARY">Secondary CASI Library (Bumps, Switch, etc.)</option>
+          <option value="QUICK_RIDE">Quick Ride</option>
         </select>
       </div>
 
@@ -586,7 +586,7 @@
         { id: 'FR-01', name: 'Unstructured Freeride Full Telemetry Run' },
         { id: 'FR-02', name: 'All-Mountain Terrain Adaptation Flow' }
       ],
-      SECONDARY: [
+      QUICK_RIDE: [
         { id: 'SEC-BMP', name: 'Bumps: Trough Steering & Active Flexion' },
         { id: 'SEC-STP', name: 'Steeps: Down Un-weighted Jump Release' },
         { id: 'SEC-SWT', name: 'Switch: Linked Switch Carved Turns' },
